@@ -86,22 +86,22 @@ def move(game_state: typing.Dict) -> typing.Dict:
     my_body = game_state['you']['body']
 
     ## Do not move into the body of the snake
-    for segment in my_body[1:]: # Skip head
+    for segment in my_body[2:]: # Skip head
 
         # Is segment to left of head
-        if segment["x"] == my_head["x"] - 1: 
+        if segment["x"] == my_head["x"] - 1 and segment["y"] == my_head["y"]: 
             is_move_safe["left"] = False
 
         # Is segment to right of head
-        if segment["x"] == my_head["x"] + 1:
+        if segment["x"] == my_head["x"] + 1 and segment["y"] == my_head["y"]:
             is_move_safe["right"] = False
             
         # Is segment above head
-        if segment["y"] == my_head["y"] + 1:
+        if segment["y"] == my_head["y"] + 1 and segment["x"] == my_head["x"]:
             is_move_safe["up"] = False
             
         # Is segment below head
-        if segment["y"] == my_head["y"] - 1:
+        if segment["y"] == my_head["y"] - 1 and segment["x"] == my_head["x"]:
             is_move_safe["down"] = False
 
 
