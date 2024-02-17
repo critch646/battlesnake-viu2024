@@ -1,13 +1,14 @@
-class State:
+from copy import deepcopy
 
+class State:
     def __init__(self, board):
         # reference to the current state of the game board
         self.snakes = [Snake(snake) for snake in board["snakes"]]
-        self.snakes.append(Snake(board["you"]))
+        self.you = Snake(board["you"])
+        self.snakes.append(self.you)
         self.height = board["height"]
         self.width = board["height"]
 
-        pass
 
 
 class Snake:
@@ -20,8 +21,9 @@ class Snake:
 
 
 class AdversarialSearch:
-    def __init__(self):
+    def __init__(self, board):
         # set up current board state
+        self.initial_state = State(board)
         pass
 
     def findOptimalMove(self):
@@ -46,45 +48,48 @@ class AdversarialSearch:
         return bestMove
 
 
-def maxN(self, state, depth, playerIndex):
-    """
-    Implements the Max-N algorithm to evaluate the best possible move for each player in a game
-    with N players, considering multiple adversaries.
+    def maxN(self, state, depth, playerIndex):
+        """
+        Implements the Max-N algorithm to evaluate the best possible move for each player in a game
+        with N players, considering multiple adversaries.
 
-    Parameters:
-    - state (State object): The current game state.
-    - depth (int): The depth of the game tree to explore.
-    - playerIndex (int): The index of the current player (0 to N-1).
+        Parameters:
+        - state (State object): The current game state.
+        - depth (int): The depth of the game tree to explore.
+        - playerIndex (int): The index of the current player (0 to N-1).
 
-    Returns:
-    - List[int]: A vector of evaluation scores for each player in the game.
+        Returns:
+        - List[int]: A vector of evaluation scores for each player in the game.
 
-    This function recursively evaluates child states by simulating moves for all players until
-    the specified depth is reached or the game is over. Each player aims to maximize their own score.
-    """
-    numPlayers = (
-        self.getNumPlayers()
-    )  # Assume this method returns the number of players in the game
-    if depth == 0 or self.gameOver(state):
-        return self.evaluateBoard(
-            state
-        )  # This must now return a list of scores, one for each player
+        This function recursively evaluates child states by simulating moves for all players until
+        the specified depth is reached or the game is over. Each player aims to maximize their own score.
+        """
+        numPlayers = (
+            self.getNumPlayers()
+        )  # Assume this method returns the number of players in the game
+        if depth == 0 or self.gameOver(state):
+            return self.evaluateBoard(state)  # This must now return a list of scores, one for each player
 
-    # Initialize a score list with worst possible scores for each player
-    scores = [
-        float("-inf") if i == playerIndex else float("inf") for i in range(numPlayers)
-    ]
+        # Initialize a score list with worst possible scores for each player
+        scores = [
+            float("-inf") if i == playerIndex else float("inf") for i in range(numPlayers)
+        ]
 
-    for move in state.availableMoves:
-        newState = self.updateState(deepcopy(state), move)
-        nextPlayerIndex = (playerIndex + 1) % numPlayers
-        eval = self.maxN(newState, depth - 1, nextPlayerIndex)
+        for move in state.availableMoves:
+            newState = self.updateState(deepcopy(state), move)
+            nextPlayerIndex = (playerIndex + 1) % numPlayers
+            eval = self.maxN(newState, depth - 1, nextPlayerIndex)
 
-        # Update the score for the current player
-        if eval[playerIndex] > scores[playerIndex]:
-            scores = eval  # Update all scores since this is the best move for the current player
+            # Update the score for the current player
+            if eval[playerIndex] > scores[playerIndex]:
+                scores = eval  # Update all scores since this is the best move for the current player
 
-    return scores
+        return scores
 
-    def evaluateBoard(self, state):
+    def evaluateBoard(self):
         return 1;
+
+
+    def gameOver(self, state):
+        return len(state.snakes) == 0 or self.you.health == 0
+
