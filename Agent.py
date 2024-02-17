@@ -1,14 +1,16 @@
 from copy import deepcopy
 
 class State:
-    def __init__(self, game):
+
+    def __init__(self, board, snakes, height, width, numPlayers, food):
         # reference to the current state of the game board
-        self.board = game["board"]
-        self.snakes = [Snake(snake) for snake in game["snakes"]]
-        self.height = self.board["height"]
-        self.width = self.board["height"]
-        self.numPlayers = len(self.snakes)
-        self.food = [food for food in self.board["food"]]
+        self.board = board
+        self.snakes = snakes
+        self.height = height
+        self.width = width
+        self.numPlayers = numPlayers
+        self.food = food
+        self.availableMoves = ["up", "down", "left", "right"]
 
     def updateState(self, move, snake_name):
         """Updates current state with the move applied to the snake. Caller responsible for making copy of state."""
@@ -100,8 +102,6 @@ class State:
 
 
 
-
-
 class Snake:
     def __init__(self, snake):
         self.name = snake["name"]
@@ -112,11 +112,16 @@ class Snake:
 
 
 class AdversarialSearch:
-    def __init__(self, board):
+    def __init__(self, game):
         # set up current board state
-        self.initial_state = State(board)
-        self.you = Snake(board["you"])
-        pass
+        board = game["board"]
+        snakes = [Snake(snake) for snake in board["snakes"]]
+        height = board["height"]
+        width = board["height"]
+        self.numPlayers = len(snakes)
+        food = [food for food in board["food"]]
+        self.initial_state = State(board, snakes, height, width, self.numPlayers, food)
+        self.you = Snake(game["you"])
 
     def findOptimalMove(self, safeMoves):
         # get the current board state
@@ -127,10 +132,11 @@ class AdversarialSearch:
         # Call minimax function on each available move
         for move in safeMoves:
             # Create a new state where that move is performed
-            newState = State(self.initial_state)
+            newState = deepcopy(self.initial_state)
             newState.updateState(self.you, move)
             # get the "value" or "score" for that move
-            values = self.maxN(self, newState, 3, self.numPlayers)
+            values = self.maxN(newState, 3, self.numPlayers-1)
+            print("VALUES", values)
             moveValue = values[-1] # our snake
 
             if moveValue > bestValue:
@@ -164,21 +170,32 @@ class AdversarialSearch:
         scores = [
             float("-inf") if i == playerIndex else float("inf") for i in range(numPlayers)
         ]
+        print("SCORES", scores)
+        print(playerIndex)
 
         for move in state.availableMoves:
-            newState = self.updateState(deepcopy(state), move)
+            newState = State(
+                state.board,
+                state.snakes,
+                state.height,
+                state.width,
+                state.numPlayers,
+                state.food,
+            )
+            newState.updateState(deepcopy(state), move)
             nextPlayerIndex = (playerIndex + 1) % numPlayers
             newDepth = depth - 1 if nextPlayerIndex == 0 else depth
-            eval = self.maxN(newState, depth - 1, nextPlayerIndex)
+            eval = self.maxN(newState, newDepth, nextPlayerIndex)
 
             # Update the score for the current player
-            if eval[playerIndex] > scores[playerIndex]:
-                scores = eval  # Update all scores since this is the best move for the current player
+            scores[playerIndex] = max(scores[playerIndex], eval[playerIndex])
+            print("BEST SCORES2", scores)
 
+        print("BEST SCORES", scores)
         return scores
 
-    def evaluateBoard(self):
-        return 1;
+    def evaluateBoard(self, state):
+        return [1, 1]
 
     def gameOver(self, state):
-        return len(state.snakes) == 0 or self.you.health == 0
+        return len(state.snakes) <=1

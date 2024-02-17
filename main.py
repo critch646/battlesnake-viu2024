@@ -138,9 +138,8 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # Choose a random move from the safe ones
     next_move = random.choice(safe_moves)
 
-    # TODO: use this instead
-    agent = AdversarialSearch(board=game_state)
-  #  next_move = agent.findOptimalMove(safeMoves=safe_moves)
+    agent = AdversarialSearch(game=game_state)
+    next_move = agent.findOptimalMove(safeMoves=safe_moves)
 
     # Food check
     if len(safe_moves) > 1:
