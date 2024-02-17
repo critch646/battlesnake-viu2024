@@ -78,7 +78,7 @@ class AdversarialSearch:
             newState = self.updateState(deepcopy(state), move)
             nextPlayerIndex = (playerIndex + 1) % numPlayers
             newDepth = depth - 1 if nextPlayerIndex == 0 else depth
-            eval = self.maxN(newState, depth - 1, nextPlayerIndex)
+            eval = self.maxN(newState, newDepth, nextPlayerIndex)
 
             # Update the score for the current player
             if eval[playerIndex] > scores[playerIndex]:
