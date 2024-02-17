@@ -137,8 +137,25 @@ def move(game_state: typing.Dict) -> typing.Dict:
     # Choose a random move from the safe ones
     next_move = random.choice(safe_moves)
 
-    # TODO: Step 4 - Move towards food instead of random, to regain health and survive longer
-    food = game_state['board']['food']
+    # Food check
+    if len(safe_moves) > 1:
+        foods = game_state["board"]["food"]
+
+        ## is a safe move food?
+        for food in foods:
+            for move in safe_moves:
+                if move == "up" and food["y"] == my_head["y"] + 1 and food["x"] == my_head["x"]:
+                    next_move = "up"
+                    break
+                elif move == "down" and food["y"] == my_head["y"] - 1 and food["x"] == my_head["x"]:
+                    next_move = "down"
+                    break
+                elif move == "right" and food["x"] == my_head["x"] + 1 and food["y"] == my_head["y"]:
+                    next_move = "right"
+                    break
+                elif move == "left" and food["x"] == my_head["x"] - 1 and food["y"] == my_head["y"]:
+                    next_move = "left"
+                    break
 
     print(f"MOVE {game_state['turn']}: {next_move}")
     return {"move": next_move}
