@@ -10,21 +10,29 @@ class State:
         self.width = width
         self.numPlayers = numPlayers
         self.food = food
-        self.availableMoves = ["up", "down", "left", "right"]
 
-    def updateState(self, move, snake_name):
-        """Updates current state with the move applied to the snake. Caller responsible for making copy of state."""
-
-        # iterate through snakes and update the snake with the move, also update health
+    def updateState(self, direction, snake_name):
+        # Find the snake to update
         for snake in self.snakes:
-            snake.health -= 1
-
             if snake.name == snake_name:
-                snake.body = move
-                snake.head = move[0]
+                # Calculate new head based on the direction
+                new_head = dict(snake.head)  # Make a copy to avoid direct modification
+                if direction == "up":
+                    new_head["y"] += 1
+                elif direction == "down":
+                    new_head["y"] -= 1
+                elif direction == "left":
+                    new_head["x"] -= 1
+                elif direction == "right":
+                    new_head["x"] += 1
 
-        # check if any snakes have collided
+                # Update the snake's position
+                snake.head = new_head
+                snake.body.insert(0, new_head)  # Add new head to the body
+                snake.body.pop()  # Remove the last segment to simulate movement
+
         self.checkCollisions()
+
 
     def checkCollisions(self):
         """Checks if any snakes have collided and removes them from the state if they have."""
@@ -66,40 +74,39 @@ class State:
                 snake.health = 100
                 snake.length += 1
 
-        def availableMoves(self, snake_name):
-            """Returns a list of available moves for the snake, considering wall, self, and other snakes" collisions."""
-            snake = next((s for s in self.snakes if s.name == snake_name), None)
-            if snake is None:
-                return []
+    def availableMoves(self, snake_name):
+        """Returns a list of available moves for the snake, considering wall, self, and other snakes" collisions."""
+        snake = next((s for s in self.snakes if s.name == snake_name), None)
+        if snake is None:
+            return []
 
-            potential_moves = {
-                "up": {"x": snake.head["x"], "y": snake.head["y"] + 1},
-                "down": {"x": snake.head["x"], "y": snake.head["y"] - 1},
-                "left": {"x": snake.head["x"] - 1, "y": snake.head["y"]},
-                "right": {"x": snake.head["x"] + 1, "y": snake.head["y"]}
-            }
+        potential_moves = {
+            "up": {"x": snake.head["x"], "y": snake.head["y"] + 1},
+            "down": {"x": snake.head["x"], "y": snake.head["y"] - 1},
+            "left": {"x": snake.head["x"] - 1, "y": snake.head["y"]},
+            "right": {"x": snake.head["x"] + 1, "y": snake.head["y"]}
+        }
 
-            valid_moves = []
+        valid_moves = []
 
-            for direction, move in potential_moves.items():
-                if 0 <= move["x"] < self.width and 0 <= move["y"] < self.height:
-                    # Self-collision
-                    if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in snake.body[:-1]):
-                        continue
+        for direction, move in potential_moves.items():
+            if 0 <= move["x"] < self.width and 0 <= move["y"] < self.height:
+                # Self-collision
+                if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in snake.body[:-1]):
+                    continue
 
-                    # Other sneks collision
-                    collision_with_other_snake = False
-                    for other_snake in self.snakes:
-                        if other_snake.name != snake_name:
-                            if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in other_snake.body):
-                                collision_with_other_snake = True
-                                break
-                    
-                    if not collision_with_other_snake:
-                        valid_moves.append(direction)
+                # Other sneks collision
+                collision_with_other_snake = False
+                for other_snake in self.snakes:
+                    if other_snake.name != snake_name:
+                        if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in other_snake.body[:-1]):
+                            collision_with_other_snake = True
+                            break
+                
+                if not collision_with_other_snake:
+                    valid_moves.append(direction)
 
-            return valid_moves
-
+        return valid_moves
 
 
 class Snake:
@@ -123,28 +130,31 @@ class AdversarialSearch:
         self.initial_state = State(board, snakes, height, width, self.numPlayers, food)
         self.you = Snake(game["you"])
 
+    
     def findOptimalMove(self, safeMoves):
-        # get the current board state
-
-        bestMove = -1
+        newState = deepcopy(self.initial_state)
+        # Now, safeMoves is already provided as an argument, so we don't need to calculate it again.
+        
+        bestMove = None
         bestValue = float("-inf")
 
-        # Call minimax function on each available move
         for move in safeMoves:
-            # Create a new state where that move is performed
-            newState = deepcopy(self.initial_state)
-            newState.updateState(self.you, move)
-            # get the "value" or "score" for that move
-            values = self.maxN(newState, 3, self.numPlayers-1)
-            print("VALUES", values)
-            moveValue = values[-1] # our snake
+            # Simulate the move and evaluate
+            simulatedState = deepcopy(newState)
+            simulatedState.updateState(move, self.you.name)
+            scores = self.evaluateBoard(simulatedState)  # This returns a list of scores for each snake
+            
 
+            moveValue = scores[0] 
+            
             if moveValue > bestValue:
                 bestValue = moveValue
                 bestMove = move
 
-        # return the move with the highest evaluation
         return bestMove
+
+
+
 
     def maxN(self, state: State, depth, playerIndex):
         """
@@ -221,7 +231,7 @@ class AdversarialSearch:
             # Adjust for potential collisions (as an example, simplified)
             if (snake.head["x"] < 0 or snake.head["x"] >= state.width or
                 snake.head["y"] < 0 or snake.head["y"] >= state.height):
-                score -= 100
+                score -= 500
             
             scores.append(score)
         
