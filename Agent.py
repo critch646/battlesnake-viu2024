@@ -5,11 +5,66 @@ class State:
         # reference to the current state of the game board
         self.board = game["board"]
         self.snakes = [Snake(snake) for snake in game["snakes"]]
-        self.snakes.append(Snake(game["you"]))
         self.height = self.board["height"]
         self.width = self.board["height"]
-        self.food = [food for food in self.board["food"]]
         self.numPlayers = len(self.snakes)
+        self.food = [food for food in self.board["food"]]
+
+    def updateState(self, move, snake_name):
+        """Updates current state with the move applied to the snake. Caller responsible for making copy of state."""
+
+        # iterate through snakes and update the snake with the move, also update health
+        for snake in self.snakes:
+            snake.health -= 1
+
+            if snake.name == snake_name:
+                snake.body = move
+                snake.head = move[0]
+
+        # check if any snakes have collided
+        self.checkCollisions()
+
+    def checkCollisions(self):
+        """Checks if any snakes have collided and removes them from the state if they have."""
+        """Checks if any snakes have collided and updates the state accordingly."""
+        to_remove = set()
+
+        # Check for wall collisions and self-collisions
+        for snake in self.snakes:
+            if (snake.head["x"] < 0 or snake.head["x"] >= self.width or
+                snake.head["y"] < 0 or snake.head["y"] >= self.height or
+                snake.head in [segment for segment in snake.body[1:]]):
+                to_remove.add(snake)
+
+        # Check for collisions with other snakes
+        for snake in self.snakes:
+            if snake in to_remove:
+                continue
+            for other_snake in self.snakes:
+                if snake != other_snake:
+                    # Check for head-to-head collisions
+                    if snake.head == other_snake.head:
+                        # Remove the shorter snake or both if equal length
+                        if snake.length <= other_snake.length:
+                            to_remove.add(snake)
+                        if snake.length >= other_snake.length:
+                            to_remove.add(other_snake)
+                    # Check for head-to-body collisions
+                    elif snake.head in other_snake.body:
+                        to_remove.add(snake)
+
+        # Remove collided snakes
+        for snake in to_remove:
+            self.snakes.remove(snake)
+
+        # Check for food consumption
+        for snake in self.snakes:
+            if snake.head in self.food:
+                self.food.remove(snake.head)
+                snake.health = 100
+                snake.length += 1
+
+
 
 
 class Snake:
@@ -79,7 +134,7 @@ class AdversarialSearch:
             newState = self.updateState(deepcopy(state), move)
             nextPlayerIndex = (playerIndex + 1) % numPlayers
             newDepth = depth - 1 if nextPlayerIndex == 0 else depth
-            eval = self.maxN(newState, newDepth, nextPlayerIndex)
+            eval = self.maxN(newState, depth - 1, nextPlayerIndex)
 
             # Update the score for the current player
             if eval[playerIndex] > scores[playerIndex]:
