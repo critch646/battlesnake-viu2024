@@ -95,18 +95,34 @@ def move(game_state: typing.Dict) -> typing.Dict:
         # Is segment to right of head
         if segment["x"] == my_head["x"] + 1 and segment["y"] == my_head["y"]:
             is_move_safe["right"] = False
-            
+
         # Is segment above head
         if segment["y"] == my_head["y"] + 1 and segment["x"] == my_head["x"]:
             is_move_safe["up"] = False
-            
+
         # Is segment below head
         if segment["y"] == my_head["y"] - 1 and segment["x"] == my_head["x"]:
             is_move_safe["down"] = False
 
-
     # Prevent your Battlesnake from colliding with other Battlesnakes
     opponents = game_state['board']['snakes']
+
+    # Loop through each opponent snake
+    for opponent in opponents:
+        # Loop through each body segment of the opponent snake (excluding the tail since it moves)
+        for segment in opponent["body"][:-1]:
+            # Check if a segment is directly left of my snake's head
+            if segment["x"] == my_head["x"] - 1 and segment["y"] == my_head["y"]:
+                is_move_safe["left"] = False
+            # Check if a segment is directly right of my snake's head
+            if segment["x"] == my_head["x"] + 1 and segment["y"] == my_head["y"]:
+                is_move_safe["right"] = False
+            # Check if a segment is directly above my snake's head
+            if segment["x"] == my_head["x"] and segment["y"] == my_head["y"] + 1:
+                is_move_safe["up"] = False
+            # Check if a segment is directly below my snake's head
+            if segment["x"] == my_head["x"] and segment["y"] == my_head["y"] - 1:
+                is_move_safe["down"] = False
 
     # Are there any safe moves left?
     safe_moves = []
