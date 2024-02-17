@@ -1,5 +1,13 @@
 from copy import deepcopy
 
+
+def find_snake_by_name(snakes, snake_name):
+    # Search for a snake with the given name in the list of Snake instances
+    for index, snake in enumerate(snakes):
+        if snake.name == snake_name:
+            return index
+    return None
+
 class State:
 
     def __init__(self, board, snakes, height, width, numPlayers, food):
@@ -10,7 +18,6 @@ class State:
         self.width = width
         self.numPlayers = numPlayers
         self.food = food
-        self.availableMoves = ["up", "down", "left", "right"]
 
     def updateState(self, move, snake_name):
         """Updates current state with the move applied to the snake. Caller responsible for making copy of state."""
@@ -25,6 +32,96 @@ class State:
 
         # check if any snakes have collided
         self.checkCollisions()
+
+
+
+    def availableMoves(self, snake_name):
+        """Returns a list of available moves for the snake, considering wall, self, and other snakes" collisions."""
+        # We've included code to prevent your Battlesnake from moving backwards
+        is_move_safe = {"up": True, "down": True, "left": True, "right": True}
+        snake = self.snakes[find_snake_by_name(self.snakes, snake_name)]
+        my_head = snake.body[0]  # Coordinates of your head
+        my_neck = snake.body[1]  # Coordinates of your "neck"
+
+        if my_neck["x"] < my_head["x"]:  # Neck is left of head, don't move left
+            is_move_safe["left"] = False
+
+        elif my_neck["x"] > my_head["x"]:  # Neck is right of head, don't move right
+            is_move_safe["right"] = False
+
+        elif my_neck["y"] < my_head["y"]:  # Neck is below head, don't move down
+            is_move_safe["down"] = False
+
+        elif my_neck["y"] > my_head["y"]:  # Neck is above head, don't move up
+            is_move_safe["up"] = False
+
+        # Prevent your Battlesnake from moving out of bounds
+        board_width = self.width
+        board_height = self.height
+
+        # If head is at the left edge, cannot move left
+        if my_head["x"] == 0:
+            is_move_safe["left"] = False
+
+        # If head is at the right edge, cannot move right
+        if my_head["x"] == board_width - 1:
+            is_move_safe["right"] = False
+
+        # If head is at the bottom edge, cannot move down
+        if my_head["y"] == 0:
+            is_move_safe["down"] = False
+
+        # If head is at the top edge, cannot move up
+        if my_head["y"] == board_height - 1:
+            is_move_safe["up"] = False
+
+        # Prevent your Battlesnake from colliding with itself
+        my_body = snake.body
+
+        ## Do not move into the body of the snake
+        for segment in my_body[2:]: # Skip head
+
+            # Is segment to left of head
+            if segment["x"] == my_head["x"] - 1 and segment["y"] == my_head["y"]: 
+                is_move_safe["left"] = False
+
+            # Is segment to right of head
+            if segment["x"] == my_head["x"] + 1 and segment["y"] == my_head["y"]:
+                is_move_safe["right"] = False
+
+            # Is segment above head
+            if segment["y"] == my_head["y"] + 1 and segment["x"] == my_head["x"]:
+                is_move_safe["up"] = False
+
+            # Is segment below head
+            if segment["y"] == my_head["y"] - 1 and segment["x"] == my_head["x"]:
+                is_move_safe["down"] = False
+
+        # Prevent your Battlesnake from colliding with other Battlesnakes
+        opponents = self.snakes
+
+        # Loop through each opponent snake
+        for opponent in opponents:
+            # Loop through each body segment of the opponent snake (excluding the tail since it moves)
+            for segment in opponent.body:
+                # Check if a segment is directly left of my snake's head
+                if segment["x"] == my_head["x"] - 1 and segment["y"] == my_head["y"]:
+                    is_move_safe["left"] = False
+                # Check if a segment is directly right of my snake's head
+                if segment["x"] == my_head["x"] + 1 and segment["y"] == my_head["y"]:
+                    is_move_safe["right"] = False
+                # Check if a segment is directly above my snake's head
+                if segment["x"] == my_head["x"] and segment["y"] == my_head["y"] + 1:
+                    is_move_safe["up"] = False
+                # Check if a segment is directly below my snake's head
+                if segment["x"] == my_head["x"] and segment["y"] == my_head["y"] - 1:
+                    is_move_safe["down"] = False
+
+        safe_moves = []
+        for move, isSafe in is_move_safe.items():
+            if isSafe:
+                safe_moves.append(move)
+        return safe_moves
 
     def checkCollisions(self):
         """Checks if any snakes have collided and removes them from the state if they have."""
@@ -80,12 +177,12 @@ class AdversarialSearch:
     def __init__(self, game):
         # set up current board state
         board = game["board"]
-        snakes = [Snake(snake) for snake in board["snakes"]]
+        self.snakes = [Snake(snake) for snake in board["snakes"]]
         height = board["height"]
         width = board["height"]
-        self.numPlayers = len(snakes)
+        self.numPlayers = len(self.snakes)
         food = [food for food in board["food"]]
-        self.initial_state = State(board, snakes, height, width, self.numPlayers, food)
+        self.initial_state = State(board, self.snakes, height, width, self.numPlayers, food)
         self.you = Snake(game["you"])
 
     def findOptimalMove(self, safeMoves):
@@ -100,7 +197,8 @@ class AdversarialSearch:
             newState = deepcopy(self.initial_state)
             newState.updateState(self.you, move)
             # get the "value" or "score" for that move
-            values = self.maxN(newState, 3, self.numPlayers-1)
+
+            values = self.maxN(newState, 3, find_snake_by_name(self.snakes, self.you.name))
             print("VALUES", values)
             moveValue = values[-1] # our snake
 
@@ -137,7 +235,7 @@ class AdversarialSearch:
 
         print(playerIndex)
 
-        for move in state.availableMoves:
+        for move in state.availableMoves(snake_name=state.snakes[playerIndex].name):
             newState = State(
                 state.board,
                 state.snakes,
@@ -227,6 +325,7 @@ class GameEvaluator:
                     if self.manhattanDistance(head, other_head) == 1:
                         # Predict head-on collision, could refine to check direction
                         scores[i] -= 5
+        print(scores)
         return scores
 
     def manhattanDistance(self, p1, p2):

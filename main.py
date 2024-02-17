@@ -131,12 +131,15 @@ def move(game_state: typing.Dict) -> typing.Dict:
         if isSafe:
             safe_moves.append(move)
 
-    if len(safe_moves) == 0:
-        print(f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
-        return {"move": "down"}
+    agent = AdversarialSearch(game=game_state)
+    next_move = agent.findOptimalMove(safeMoves=safe_moves)
+
+    # if len(safe_moves) == 0:
+    #     print(f"MOVE {game_state['turn']}: No safe moves detected! Moving down")
+    #     return {"move": "down"}
 
     # Choose a random move from the safe ones
-    next_move = random.choice(safe_moves)
+    #  next_move = random.choice(safe_moves)
 
     agent = AdversarialSearch(game=game_state)
     next_move = agent.findOptimalMove(safeMoves=safe_moves)
