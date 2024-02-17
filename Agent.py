@@ -8,6 +8,7 @@ class State:
         self.snakes.append(Snake(game["you"]))
         self.height = self.board["height"]
         self.width = self.board["height"]
+        self.food = [food for food in self.board["food"]]
         self.numPlayers = len(self.snakes)
 
 
