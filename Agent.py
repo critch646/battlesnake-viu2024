@@ -1,7 +1,23 @@
 class State:
-    def __init__(self):
+
+    def __init__(self, board):
         # reference to the current state of the game board
+        self.snakes = [Snake(snake) for snake in board["snakes"]]
+        self.snakes.append(Snake(board["you"]))
+        self.height = board["height"]
+        self.width = board["height"]
+
         pass
+
+
+class Snake:
+    def __init__(self, snake):
+        self.name = snake["name"]
+        self.health = snake["health"]
+        self.body = snake["body"]
+        self.head = snake["head"]
+        self.length = snake["length"]
+
 
 class AdversarialSearch:
     def __init__(self):
