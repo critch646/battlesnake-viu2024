@@ -64,6 +64,41 @@ class State:
                 snake.health = 100
                 snake.length += 1
 
+        def availableMoves(self, snake_name):
+            """Returns a list of available moves for the snake, considering wall, self, and other snakes' collisions."""
+            snake = next((s for s in self.snakes if s.name == snake_name), None)
+            if snake is None:
+                return []
+
+            potential_moves = {
+                'up': {"x": snake.head["x"], "y": snake.head["y"] + 1},
+                'down': {"x": snake.head["x"], "y": snake.head["y"] - 1},
+                'left': {"x": snake.head["x"] - 1, "y": snake.head["y"]},
+                'right': {"x": snake.head["x"] + 1, "y": snake.head["y"]}
+            }
+
+            valid_moves = []
+
+            for direction, move in potential_moves.items():
+                if 0 <= move["x"] < self.width and 0 <= move["y"] < self.height:
+                    # Self-collision
+                    if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in snake.body[:-1]):
+                        continue
+
+                    # Other sneks collision
+                    collision_with_other_snake = False
+                    for other_snake in self.snakes:
+                        if other_snake.name != snake_name:
+                            if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in other_snake.body):
+                                collision_with_other_snake = True
+                                break
+                    
+                    if not collision_with_other_snake:
+                        valid_moves.append(direction)
+
+            return valid_moves
+
+
 
 
 
