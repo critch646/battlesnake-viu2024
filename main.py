@@ -12,6 +12,7 @@
 
 import random
 import typing
+from Agent import AdversarialSearch
 
 
 # info is called when you create your Battlesnake on play.battlesnake.com
@@ -136,6 +137,10 @@ def move(game_state: typing.Dict) -> typing.Dict:
 
     # Choose a random move from the safe ones
     next_move = random.choice(safe_moves)
+
+    # TODO: use this instead
+    agent = AdversarialSearch(board=game_state)
+  #  next_move = agent.findOptimalMove(safeMoves=safe_moves)
 
     # Food check
     if len(safe_moves) > 1:

@@ -1,14 +1,14 @@
 from copy import deepcopy
 
 class State:
-    def __init__(self, board):
+    def __init__(self, game):
         # reference to the current state of the game board
-        self.snakes = [Snake(snake) for snake in board["snakes"]]
-        self.you = Snake(board["you"])
-        self.snakes.append(self.you)
-        self.height = board["height"]
-        self.width = board["height"]
-
+        self.board = game["board"]
+        self.snakes = [Snake(snake) for snake in game["snakes"]]
+        self.snakes.append(Snake(game["you"]))
+        self.height = self.board["height"]
+        self.width = self.board["height"]
+        self.numPlayers = len(self.snakes)
 
 
 class Snake:
@@ -24,21 +24,23 @@ class AdversarialSearch:
     def __init__(self, board):
         # set up current board state
         self.initial_state = State(board)
+        self.you = Snake(board["you"])
         pass
 
-    def findOptimalMove(self):
+    def findOptimalMove(self, safeMoves):
         # get the current board state
 
         bestMove = -1
         bestValue = float('-inf')
-        moves = []
 
         # Call minimax function on each available move
-        for move in moves:
+        for move in safeMoves:
             # Create a new state where that move is performed
-            # newState = State()
+            newState = State(self.initial_state)
+            newState.updateState(self.you, move)
             # get the "value" or "score" for that move
-            moveValue = self.minimax()
+            values = self.maxN(self, newState, 3, self.numPlayers)
+            moveValue = values[-1] # our snake
 
             if moveValue > bestValue:
                 bestValue = moveValue
@@ -47,8 +49,7 @@ class AdversarialSearch:
         # return the move with the highest evaluation
         return bestMove
 
-
-    def maxN(self, state, depth, playerIndex):
+    def maxN(self, state: State, depth, playerIndex):
         """
         Implements the Max-N algorithm to evaluate the best possible move for each player in a game
         with N players, considering multiple adversaries.
@@ -64,9 +65,7 @@ class AdversarialSearch:
         This function recursively evaluates child states by simulating moves for all players until
         the specified depth is reached or the game is over. Each player aims to maximize their own score.
         """
-        numPlayers = (
-            self.getNumPlayers()
-        )  # Assume this method returns the number of players in the game
+        numPlayers = len(state.snakes)
         if depth == 0 or self.gameOver(state):
             return self.evaluateBoard(state)  # This must now return a list of scores, one for each player
 
@@ -78,6 +77,7 @@ class AdversarialSearch:
         for move in state.availableMoves:
             newState = self.updateState(deepcopy(state), move)
             nextPlayerIndex = (playerIndex + 1) % numPlayers
+            newDepth = depth - 1 if nextPlayerIndex == 0 else depth
             eval = self.maxN(newState, depth - 1, nextPlayerIndex)
 
             # Update the score for the current player
@@ -89,7 +89,5 @@ class AdversarialSearch:
     def evaluateBoard(self):
         return 1;
 
-
     def gameOver(self, state):
         return len(state.snakes) == 0 or self.you.health == 0
-
