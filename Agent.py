@@ -67,16 +67,16 @@ class State:
                 snake.length += 1
 
         def availableMoves(self, snake_name):
-            """Returns a list of available moves for the snake, considering wall, self, and other snakes' collisions."""
+            """Returns a list of available moves for the snake, considering wall, self, and other snakes" collisions."""
             snake = next((s for s in self.snakes if s.name == snake_name), None)
             if snake is None:
                 return []
 
             potential_moves = {
-                'up': {"x": snake.head["x"], "y": snake.head["y"] + 1},
-                'down': {"x": snake.head["x"], "y": snake.head["y"] - 1},
-                'left': {"x": snake.head["x"] - 1, "y": snake.head["y"]},
-                'right': {"x": snake.head["x"] + 1, "y": snake.head["y"]}
+                "up": {"x": snake.head["x"], "y": snake.head["y"] + 1},
+                "down": {"x": snake.head["x"], "y": snake.head["y"] - 1},
+                "left": {"x": snake.head["x"] - 1, "y": snake.head["y"]},
+                "right": {"x": snake.head["x"] + 1, "y": snake.head["y"]}
             }
 
             valid_moves = []
@@ -84,14 +84,14 @@ class State:
             for direction, move in potential_moves.items():
                 if 0 <= move["x"] < self.width and 0 <= move["y"] < self.height:
                     # Self-collision
-                    if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in snake.body[:-1]):
+                    if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in snake.body[:-1]):
                         continue
 
                     # Other sneks collision
                     collision_with_other_snake = False
                     for other_snake in self.snakes:
                         if other_snake.name != snake_name:
-                            if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in other_snake.body):
+                            if any(segment["x"] == move["x"] and segment["y"] == move["y"] for segment in other_snake.body):
                                 collision_with_other_snake = True
                                 break
                     
@@ -127,7 +127,7 @@ class AdversarialSearch:
         # get the current board state
 
         bestMove = -1
-        bestValue = float('-inf')
+        bestValue = float("-inf")
 
         # Call minimax function on each available move
         for move in safeMoves:
@@ -195,7 +195,48 @@ class AdversarialSearch:
         return scores
 
     def evaluateBoard(self, state):
-        return [1, 1]
+        scores = []
+
+        for snake in state.snakes:
+            score = 0
+            
+            # Health Points: More health, higher score
+            score += snake.health
+            
+            # Length: Longer might be better to a point
+            score += snake.length * 2
+            
+            # Proximity to Food: Closer food, higher score
+            closest_food_distance = min(
+                abs(snake.head["x"] - food["x"]) + abs(snake.head["y"] - food["y"])
+                for food in state.food
+            ) if state.food else 100 
+            score -= closest_food_distance
+
+            # accessible_area = state.accessible_area(snake.head)
+            # # Penalize the score based on the lack of accessible area (simplified example)
+            # if accessible_area < 2:  # If less than 2 accessible cells, it might be getting trapped
+            #     score -= 50  # Penalize for potential blocking off
+            
+            # Adjust for potential collisions (as an example, simplified)
+            if (snake.head["x"] < 0 or snake.head["x"] >= state.width or
+                snake.head["y"] < 0 or snake.head["y"] >= state.height):
+                score -= 100
+            
+            scores.append(score)
+        
+        return scores
+    
+    def accessible_area(self, snake_head):
+        """Calculate the number of immediately accessible cells around the snake's head."""
+        accessible_cells = 0
+        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Up, Right, Down, Left
+        for dx, dy in directions:
+            nx, ny = snake_head['x'] + dx, snake_head['y'] + dy
+            if 0 <= nx < self.width and 0 <= ny < self.height:
+                if not any(segment['x'] == nx and segment['y'] == ny for snake in self.snakes for segment in snake.body):
+                    accessible_cells += 1
+        return accessible_cells
 
     def gameOver(self, state):
         return len(state.snakes) <=1
