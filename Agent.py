@@ -66,41 +66,6 @@ class State:
                 snake.health = 100
                 snake.length += 1
 
-        def availableMoves(self, snake_name):
-            """Returns a list of available moves for the snake, considering wall, self, and other snakes' collisions."""
-            snake = next((s for s in self.snakes if s.name == snake_name), None)
-            if snake is None:
-                return []
-
-            potential_moves = {
-                'up': {"x": snake.head["x"], "y": snake.head["y"] + 1},
-                'down': {"x": snake.head["x"], "y": snake.head["y"] - 1},
-                'left': {"x": snake.head["x"] - 1, "y": snake.head["y"]},
-                'right': {"x": snake.head["x"] + 1, "y": snake.head["y"]}
-            }
-
-            valid_moves = []
-
-            for direction, move in potential_moves.items():
-                if 0 <= move["x"] < self.width and 0 <= move["y"] < self.height:
-                    # Self-collision
-                    if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in snake.body[:-1]):
-                        continue
-
-                    # Other sneks collision
-                    collision_with_other_snake = False
-                    for other_snake in self.snakes:
-                        if other_snake.name != snake_name:
-                            if any(segment['x'] == move['x'] and segment['y'] == move['y'] for segment in other_snake.body):
-                                collision_with_other_snake = True
-                                break
-                    
-                    if not collision_with_other_snake:
-                        valid_moves.append(direction)
-
-            return valid_moves
-
-
 
 class Snake:
     def __init__(self, snake):
@@ -164,13 +129,12 @@ class AdversarialSearch:
         """
         numPlayers = len(state.snakes)
         if depth == 0 or self.gameOver(state):
-            return self.evaluateBoard(state)  # This must now return a list of scores, one for each player
+            ev = GameEvaluator(state)
+            return ev.evaluateBoard()  # This must now return a list of scores, one for each player
 
-        # Initialize a score list with worst possible scores for each player
-        scores = [
-            float("-inf") if i == playerIndex else float("inf") for i in range(numPlayers)
-        ]
-        print("SCORES", scores)
+        # Initialize all players' scores to -inf, as each actual score will be an improvement
+        scores = [float("-inf") for _ in range(numPlayers)]
+
         print(playerIndex)
 
         for move in state.availableMoves:
@@ -182,20 +146,89 @@ class AdversarialSearch:
                 state.numPlayers,
                 state.food,
             )
-            newState.updateState(deepcopy(state), move)
+            newState.updateState(playerIndex, move)
+            # Here, you need to correctly implement move simulation on newState based on the given move
+            # For example, you might have newState.simulateMove(move, playerIndex) or similar
+
             nextPlayerIndex = (playerIndex + 1) % numPlayers
             newDepth = depth - 1 if nextPlayerIndex == 0 else depth
-            eval = self.maxN(newState, newDepth, nextPlayerIndex)
+            newScores = self.maxN(newState, newDepth, nextPlayerIndex)
 
-            # Update the score for the current player
-            scores[playerIndex] = max(scores[playerIndex], eval[playerIndex])
-            print("BEST SCORES2", scores)
+            # This checks if the evaluated score for the current player is better than what was previously found
+            # If so, it updates the scores for all players based on this move's outcome
+            if newScores[nextPlayerIndex] > scores[nextPlayerIndex]:
+                scores = newScores  # Update the scores to reflect the best outcome found for this move
 
-        print("BEST SCORES", scores)
         return scores
 
-    def evaluateBoard(self, state):
-        return [1, 1]
-
     def gameOver(self, state):
-        return len(state.snakes) <=1
+        return len(state.snakes) <= 1
+
+
+class GameEvaluator:
+    def __init__(self, state):
+        self.state = state
+
+    def evaluateBoard(self):
+        scores = [0] * self.state.numPlayers  # Initialize scores for each snake
+
+        # Evaluate various aspects of the game state
+        scores = self.evaluateFood(scores)
+        scores = self.evaluateWalls(scores)
+        scores = self.evaluateSnakesCollision(scores)
+        scores = self.evaluateHeadOnCollisions(scores)
+
+        return scores
+
+    def evaluateFood(self, scores):
+        for i, snake in enumerate(self.state.snakes):
+            head = snake.head  # Assuming the head is the first element
+            if len(self.state.food) > 0:  # Ensure there is food to consider
+                distance_to_closest_food = min(
+                    [self.manhattanDistance(head, food) for food in self.state.food]
+                )
+                # Closer to food is better, inverse relation
+                scores[i] += max(0, 10 - distance_to_closest_food)
+        return scores
+
+    def evaluateWalls(self, scores):
+        for i, snake in enumerate(self.state.snakes):
+            head = snake.head
+            # Penalize positions closer to walls
+            distance_to_wall = min(
+                [
+                    head["x"],
+                    self.state.width - head["x"] - 1,
+                    head["y"],
+                    self.state.height - head["y"] - 1,
+                ]
+            )
+            scores[i] += max(
+                0, distance_to_wall - 1
+            )  # Closer than 1 block to wall is bad
+        return scores
+
+    def evaluateSnakesCollision(self, scores):
+        for i, snake in enumerate(self.state.snakes):
+            head = snake.head
+            # Check potential collisions with other snakes and itself
+            for j, other_snake in enumerate(self.state.snakes):
+                if i != j:  # Avoid self
+                    if head in [segment for segment in other_snake.body[1:]]:
+                        scores[i] -= 10  # Penalize for potential collision
+        return scores
+
+    def evaluateHeadOnCollisions(self, scores):
+        for i, snake in enumerate(self.state.snakes):
+            head = snake.head
+            for j, other_snake in enumerate(self.state.snakes):
+                if i != j:
+                    other_head = other_snake.head
+                    if self.manhattanDistance(head, other_head) == 1:
+                        # Predict head-on collision, could refine to check direction
+                        scores[i] -= 5
+        return scores
+
+    def manhattanDistance(self, p1, p2):
+        # Note: p1 and p2 are now expected to be dictionaries with "x" and "y" keys
+        return abs(p1["x"] - p2["x"]) + abs(p1["y"] - p2["y"])
