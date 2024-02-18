@@ -178,7 +178,7 @@ class AdversarialSearch:
 
         # Initialize a score list with worst possible scores for each player
         scores = [
-            float("-inf") if i == playerIndex else float("inf") for i in range(numPlayers)
+            float("-inf") for i in range(numPlayers)
         ]
         print("SCORES", scores)
         print(playerIndex)
