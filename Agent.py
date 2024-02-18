@@ -210,31 +210,41 @@ class AdversarialSearch:
         for snake in state.snakes:
             score = 0
             
-            # Health Points: More health, higher score
-            score += snake.health
+            # Adjusted Health Points Scoring
+            health_score = min(snake.health, 100) / 10  # Caps the health benefit at 100
+            score += health_score
             
-            # Length: Longer might be better to a point
-            score += snake.length * 2
-            
-            # Proximity to Food: Closer food, higher score
-            closest_food_distance = min(
-                abs(snake.head["x"] - food["x"]) + abs(snake.head["y"] - food["y"])
-                for food in state.food
-            ) if state.food else 100 
-            score -= closest_food_distance
+            # Adjusted Length Scoring
+            length_score = min(snake.length, 10)  # Caps the length benefit
+            score += length_score
+
+            # Adjusted Proximity to Food
+            if state.food:
+                closest_food_distance = min(
+                    abs(snake.head["x"] - food["x"]) + abs(snake.head["y"] - food["y"])
+                    for food in state.food
+                )
+                food_score = max(
+                    0, 20 - closest_food_distance
+                )  # Ensures score doesn't go negative
+                score += food_score
 
             # accessible_area = state.accessible_area(snake.head)
-            # # Penalize the score based on the lack of accessible area (simplified example)
-            # if accessible_area < 2:  # If less than 2 accessible cells, it might be getting trapped
-            #     score -= 50  # Penalize for potential blocking off
-            
-            # Adjust for potential collisions (as an example, simplified)
-            if (snake.head["x"] < 0 or snake.head["x"] >= state.width or
-                snake.head["y"] < 0 or snake.head["y"] >= state.height):
-                score -= 500
-            
+            accessible_area = state.accessible_area(snake.head)
+            if accessible_area < 5:
+                score -= (5 - accessible_area) * 10  # More nuanced penalty based on accessible area
+
+            # Collision Avoidance
+            if (
+                snake.head["x"] < 0
+                or snake.head["x"] >= state.width
+                or snake.head["y"] < 0
+                or snake.head["y"] >= state.height
+            ):
+                score -= 500  # Keeps the boundary check
+
             scores.append(score)
-        
+
         return scores
     
     def accessible_area(self, snake_head):
