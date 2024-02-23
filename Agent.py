@@ -12,11 +12,9 @@ class State:
         self.food = food
 
     def updateState(self, direction, snake_name):
-        # Find the snake to update
         for snake in self.snakes:
             if snake.name == snake_name:
-                # Calculate new head based on the direction
-                new_head = dict(snake.head)  # Make a copy to avoid direct modification
+                new_head = dict(snake.head)
                 if direction == "up":
                     new_head["y"] += 1
                 elif direction == "down":
@@ -26,16 +24,14 @@ class State:
                 elif direction == "right":
                     new_head["x"] += 1
 
-                # Update the snake's position
                 snake.head = new_head
-                snake.body.insert(0, new_head)  # Add new head to the body
-                snake.body.pop()  # Remove the last segment to simulate movement
+                snake.body.insert(0, new_head)
+                snake.body.pop()
 
         self.checkCollisions()
 
 
     def checkCollisions(self):
-        """Checks if any snakes have collided and removes them from the state if they have."""
         """Checks if any snakes have collided and updates the state accordingly."""
         to_remove = set()
 
@@ -52,14 +48,11 @@ class State:
                 continue
             for other_snake in self.snakes:
                 if snake != other_snake:
-                    # Check for head-to-head collisions
                     if snake.head == other_snake.head:
-                        # Remove the shorter snake or both if equal length
                         if snake.length <= other_snake.length:
                             to_remove.add(snake)
                         if snake.length >= other_snake.length:
                             to_remove.add(other_snake)
-                    # Check for head-to-body collisions
                     elif snake.head in other_snake.body:
                         to_remove.add(snake)
 
@@ -75,7 +68,6 @@ class State:
                 snake.length += 1
 
     def availableMoves(self, snake_name):
-        """Returns a list of available moves for the snake, considering wall, self, and other snakes" collisions."""
         snake = next((s for s in self.snakes if s.name == snake_name), None)
         if snake is None:
             return []
@@ -133,7 +125,6 @@ class AdversarialSearch:
     
     def findOptimalMove(self, safeMoves):
         newState = deepcopy(self.initial_state)
-        # Now, safeMoves is already provided as an argument, so we don't need to calculate it again.
         
         bestMove = None
         bestValue = float("-inf")
@@ -142,9 +133,8 @@ class AdversarialSearch:
             # Simulate the move and evaluate
             simulatedState = deepcopy(newState)
             simulatedState.updateState(move, self.you.name)
-            scores = self.evaluateBoard(simulatedState)  # This returns a list of scores for each snake
+            scores = self.evaluateBoard(simulatedState)
             
-
             moveValue = scores[0] 
             
             if moveValue > bestValue:
@@ -174,7 +164,7 @@ class AdversarialSearch:
         """
         numPlayers = len(state.snakes)
         if depth == 0 or self.gameOver(state):
-            return self.evaluateBoard(state)  # This must now return a list of scores, one for each player
+            return self.evaluateBoard(state)
 
         # Initialize a score list with worst possible scores for each player
         scores = [
@@ -210,25 +200,20 @@ class AdversarialSearch:
         for snake in state.snakes:
             score = 0
             
-            # Health Points: More health, higher score
+            # Snek health points
             score += snake.health
             
-            # Length: Longer might be better to a point
+            # Snek length
             score += snake.length * 2
             
-            # Proximity to Food: Closer food, higher score
+            # Snek proximity to Food
             closest_food_distance = min(
                 abs(snake.head["x"] - food["x"]) + abs(snake.head["y"] - food["y"])
                 for food in state.food
             ) if state.food else 100 
             score -= closest_food_distance
 
-            # accessible_area = state.accessible_area(snake.head)
-            # # Penalize the score based on the lack of accessible area (simplified example)
-            # if accessible_area < 2:  # If less than 2 accessible cells, it might be getting trapped
-            #     score -= 50  # Penalize for potential blocking off
-            
-            # Adjust for potential collisions (as an example, simplified)
+            # Proximity to other sneaky sneks
             if (snake.head["x"] < 0 or snake.head["x"] >= state.width or
                 snake.head["y"] < 0 or snake.head["y"] >= state.height):
                 score -= 500
@@ -237,16 +222,5 @@ class AdversarialSearch:
         
         return scores
     
-    def accessible_area(self, snake_head):
-        """Calculate the number of immediately accessible cells around the snake's head."""
-        accessible_cells = 0
-        directions = [(0, 1), (1, 0), (0, -1), (-1, 0)]  # Up, Right, Down, Left
-        for dx, dy in directions:
-            nx, ny = snake_head['x'] + dx, snake_head['y'] + dy
-            if 0 <= nx < self.width and 0 <= ny < self.height:
-                if not any(segment['x'] == nx and segment['y'] == ny for snake in self.snakes for segment in snake.body):
-                    accessible_cells += 1
-        return accessible_cells
-
     def gameOver(self, state):
         return len(state.snakes) <=1
